@@ -15,12 +15,10 @@
 #include <nav_msgs/Odometry.h>
 #include <tf/transform_broadcaster.h>
 #include <tf2_ros/static_transform_broadcaster.h>
-#include <condition_variable>
 
 #include <queue>
 #include <mutex>
 #include <atomic>
-#include <thread>
 
 namespace realsense2_camera
 {
@@ -48,24 +46,6 @@ namespace realsense2_camera
     };
     typedef std::pair<image_transport::Publisher, std::shared_ptr<FrequencyDiagnostics>> ImagePublisherWithFrequencyDiagnostics;
 
-    class TemperatureDiagnostics
-    {
-        public:
-            TemperatureDiagnostics(std::string name, std::string serial_no);
-            void diagnostics(diagnostic_updater::DiagnosticStatusWrapper& status);
-
-            void update(double crnt_temperaure)
-            {
-                _crnt_temp = crnt_temperaure;
-                _updater.update();
-            }
-
-        private:
-            double _crnt_temp;
-            diagnostic_updater::Updater _updater;
-
-    };
-
     class NamedFilter
     {
         public:
@@ -78,14 +58,14 @@ namespace realsense2_camera
             {}
     };
 
-	class PipelineSyncer : public rs2::asynchronous_syncer
-	{
-	public: 
-		void operator()(rs2::frame f) const
-		{
-			invoke(std::move(f));
-		}
-	};
+    class PipelineSyncer : public rs2::asynchronous_syncer
+    {
+    public:
+        void operator()(rs2::frame f) const
+        {
+            invoke(std::move(f));
+        }
+    };
 
     class SyncedImuPublisher
     {
@@ -98,7 +78,7 @@ namespace realsense2_camera
             void Publish(sensor_msgs::Imu msg);     //either send or hold message.
             uint32_t getNumSubscribers() { return _publisher.getNumSubscribers();};
             void Enable(bool is_enabled) {_is_enabled=is_enabled;};
-        
+
         private:
             void PublishPendingMessages();
 
@@ -122,7 +102,7 @@ namespace realsense2_camera
         void toggleSensors(bool enabled);
         virtual void publishTopics() override;
         virtual void registerDynamicReconfigCb(ros::NodeHandle& nh) override;
-        virtual ~BaseRealSenseNode();
+        virtual ~BaseRealSenseNode() {}
 
     public:
         enum imu_sync_method{NONE, COPY, LINEAR_INTERPOLATION};
@@ -150,7 +130,6 @@ namespace realsense2_camera
                 }
         };
 
-        bool _is_running;
         std::string _base_frame_id;
         std::string _odom_frame_id;
         std::map<stream_index_pair, std::string> _frame_id;
@@ -158,7 +137,6 @@ namespace realsense2_camera
         std::map<stream_index_pair, std::string> _depth_aligned_frame_id;
         ros::NodeHandle& _node_handle, _pnh;
         bool _align_depth;
-        std::vector<rs2_option> _monitor_options;
 
         virtual void calcAndPublishStaticTransform(const stream_index_pair& stream, const rs2::stream_profile& base_profile);
         rs2::stream_profile getAProfile(const stream_index_pair& stream);
@@ -191,7 +169,7 @@ namespace realsense2_camera
                         BaseRealSenseNode::float3 m_reading;
                         double                    m_time;
                 };
-                
+
             private:
                 size_t m_max_size;
                 std::map<sensor_name, std::list<imuData> > m_map;
@@ -217,11 +195,8 @@ namespace realsense2_camera
         cv::Mat& fix_depth_scale(const cv::Mat& from_image, cv::Mat& to_image);
         void clip_depth(rs2::depth_frame depth_frame, float clipping_dist);
         void updateStreamCalibData(const rs2::video_stream_profile& video_profile);
-        void SetBaseStream();
         void publishStaticTransforms();
-        void publishDynamicTransforms();
         void publishIntrinsics();
-        void runFirstFrameInitialization(rs2_stream stream_type);
         void publishPointCloud(rs2::points f, const ros::Time& t, const rs2::frameset& frameset);
         Extrinsics rsExtrinsicsToMsg(const rs2_extrinsics& extrinsics, const std::string& frame_id) const;
 
@@ -247,13 +222,7 @@ namespace realsense2_camera
         void multiple_message_callback(rs2::frame frame, imu_sync_method sync_method);
         void frame_callback(rs2::frame frame);
         void registerDynamicOption(ros::NodeHandle& nh, rs2::options sensor, std::string& module_name);
-        void readAndSetDynamicParam(ros::NodeHandle& nh1, std::shared_ptr<ddynamic_reconfigure::DDynamicReconfigure> ddynrec, const std::string option_name, const int min_val, const int max_val, rs2::sensor sensor, int* option_value);
-        void registerAutoExposureROIOptions(ros::NodeHandle& nh);
-        void set_auto_exposure_roi(const std::string option_name, rs2::sensor sensor, int new_value);
-        void set_sensor_auto_exposure_roi(rs2::sensor sensor);
         rs2_stream rs2_string_to_stream(std::string str);
-        void startMonitoring();
-        void publish_temperature();
 
         rs2::device _dev;
         std::map<stream_index_pair, rs2::sensor> _sensors;
@@ -274,15 +243,9 @@ namespace realsense2_camera
         std::map<stream_index_pair, int> _width;
         std::map<stream_index_pair, int> _height;
         std::map<stream_index_pair, int> _fps;
-        std::map<rs2_stream, int>        _format;
         std::map<stream_index_pair, bool> _enable;
         std::map<rs2_stream, std::string> _stream_name;
-        bool _publish_tf;
-        double _tf_publish_rate;
         tf2_ros::StaticTransformBroadcaster _static_tf_broadcaster;
-        tf2_ros::TransformBroadcaster _dynamic_tf_broadcaster;
-        std::vector<geometry_msgs::TransformStamped> _static_tf_msgs;
-        std::shared_ptr<std::thread> _tf_t;
 
         std::map<stream_index_pair, ImagePublisherWithFrequencyDiagnostics> _image_publishers;
         std::map<stream_index_pair, ros::Publisher> _imu_publishers;
@@ -304,6 +267,7 @@ namespace realsense2_camera
         bool _sync_frames;
         bool _pointcloud;
         bool _publish_odom_tf;
+        bool _publish_fps_diagnostics;
         imu_sync_method _imu_sync_method;
         std::string _filters_str;
         stream_index_pair _pointcloud_texture;
@@ -321,19 +285,9 @@ namespace realsense2_camera
         std::map<stream_index_pair, ImagePublisherWithFrequencyDiagnostics> _depth_aligned_image_publishers;
         std::map<stream_index_pair, ros::Publisher> _depth_to_other_extrinsics_publishers;
         std::map<stream_index_pair, rs2_extrinsics> _depth_to_other_extrinsics;
-        std::map<std::string, rs2::region_of_interest> _auto_exposure_roi;
-        std::map<rs2_stream, bool> _is_first_frame;
-        std::map<rs2_stream, std::vector<std::function<void()> > > _video_functions_stack;
 
-        typedef std::pair<rs2_option, std::shared_ptr<TemperatureDiagnostics>> OptionTemperatureDiag;
-        std::vector< OptionTemperatureDiag > _temperature_nodes;
-        std::shared_ptr<std::thread> _monitoring_t;
-        mutable std::condition_variable _cv;
-
-        stream_index_pair _base_stream;
         const std::string _namespace;
 
     };//end class
 
 }
-
