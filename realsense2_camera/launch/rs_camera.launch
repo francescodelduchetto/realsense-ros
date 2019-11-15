@@ -41,6 +41,7 @@
 
   <arg name="publish_tf"                default="true"/>
   <arg name="tf_publish_rate"           default="0"/>
+  <arg name="publish_fps_diagnostics"   default="true"/>
 
   <arg name="filters"                   default=""/>
   <arg name="clip_distance"             default="-2"/>
@@ -94,6 +95,7 @@
 
       <arg name="publish_tf"               value="$(arg publish_tf)"/>
       <arg name="tf_publish_rate"          value="$(arg tf_publish_rate)"/>
+      <arg name="publish_fps_diagnostics"  value="$(arg publish_fps_diagnostics)"/>
 
       <arg name="filters"                  value="$(arg filters)"/>
       <arg name="clip_distance"            value="$(arg clip_distance)"/>

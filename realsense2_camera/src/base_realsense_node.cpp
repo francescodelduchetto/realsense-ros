@@ -676,7 +676,8 @@ void BaseRealSenseNode::setupPublishers()
                 std::string aligned_stream_name = "aligned_depth_to_" + stream_name;
                 std::shared_ptr<FrequencyDiagnostics> frequency_diagnostics;
                 if (_publish_fps_diagnostics)
-                    frequency_diagnostics = std::shared_ptr<FrequencyDi
+                    frequency_diagnostics = std::shared_ptr<FrequencyDiagnostics>(new FrequencyDiagnostics(_fps[stream], stream_name, _serial_no));
+
                 _depth_aligned_image_publishers[stream] = {image_transport.advertise(aligned_image_raw.str(), 1), frequency_diagnostics};
                 _depth_aligned_info_publisher[stream] = _node_handle.advertise<sensor_msgs::CameraInfo>(aligned_camera_info.str(), 1);
             }
@@ -2098,7 +2099,8 @@ void BaseRealSenseNode::publishFrame(rs2::frame f, const ros::Time& t,
         info_publisher.publish(cam_info);
 
         image_publisher.first.publish(img);
-        image_publisher.second->update();
+        if (_publish_fps_diagnostics)
+            image_publisher.second->update();
         // ROS_INFO_STREAM("fid: " << cam_info.header.seq << ", time: " << std::setprecision (20) << t.toSec());
         ROS_DEBUG("%s stream published", rs2_stream_to_string(f.get_profile().stream_type()));
     }

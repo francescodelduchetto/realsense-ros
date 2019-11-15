@@ -75,6 +75,7 @@
 
   <arg name="publish_tf"               default="true"/>
   <arg name="tf_publish_rate"          default="0"/> <!-- 0 - static transform -->
+  <arg name="publish_fps_diagnostics"  default="true"/>
 
   <arg name="odom_frame_id"            default="$(arg tf_prefix)_odom_frame"/>
   <arg name="topic_odom_in"            default="$(arg tf_prefix)/odom_in"/>
@@ -86,7 +87,6 @@
   <arg name="initial_reset"            default="false"/>
   <arg name="unite_imu_method"         default="none"/> <!-- Options are: [none, copy, linear_interpolation] -->
   <arg name="allow_no_texture_points"  default="false"/>
-
 
   <node unless="$(arg external_manager)" pkg="nodelet" type="nodelet" name="$(arg manager)" args="manager" output="screen" required="$(arg required)"/>
   <node pkg="nodelet" type="nodelet" name="realsense2_camera" args="load realsense2_camera/RealSenseNodeFactory $(arg manager)" required="$(arg required)">
@@ -161,6 +161,7 @@
 
     <param name="publish_tf"               type="bool"   value="$(arg publish_tf)"/>
     <param name="tf_publish_rate"          type="double" value="$(arg tf_publish_rate)"/>
+    <param name="publish_fps_diagnostics"  type="bool"   value="$(arg publish_fps_diagnostics)"/>
 
     <param name="odom_frame_id"            type="str"  value="$(arg odom_frame_id)"/>
     <param name="topic_odom_in"            type="str"  value="$(arg topic_odom_in)"/>

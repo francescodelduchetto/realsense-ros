@@ -137,6 +137,7 @@ namespace realsense2_camera
         std::map<stream_index_pair, std::string> _depth_aligned_frame_id;
         ros::NodeHandle& _node_handle, _pnh;
         bool _align_depth;
+        std::vector<rs2_option> _monitor_options;
 
         virtual void calcAndPublishStaticTransform(const stream_index_pair& stream, const rs2::stream_profile& base_profile);
         rs2::stream_profile getAProfile(const stream_index_pair& stream);
